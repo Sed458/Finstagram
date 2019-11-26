@@ -1,0 +1,1 @@
+SELECT * FROM Photo WHERE photoPoster = "TestUser" OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = "TestUser") OR photoPoster = (SELECT username_followed FROM Follow WHERE username_follower = "TestUser")

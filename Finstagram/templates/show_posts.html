@@ -1,0 +1,59 @@
+<html>
+<head>
+</head>
+<body>
+
+<style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+</style>
+
+Here are posts by {{poster_name}}:
+<br>
+<br>
+
+<form action="/follow" method="GET">
+	<input type="text" name = "poster" value ={{poster_name}}> </input>
+	<input type="submit" value = "Follow User" />
+</form>
+
+
+
+
+	<table>
+		<th>Time</th>
+		<th>User</th>
+		<th>photoPoster</th>
+		<th>PhotoID</th>
+		<th>Caption</th>
+		<th>Photo Path</th>
+		<th>Photo</th>
+		<th>allFollowers</th>
+
+	{% for line in posts %}
+		<tr>
+			<td>{{line.postingdate}}</td>
+			<td>{{line.firstName, line.lastName}}</td>
+			<td>{{line.photoPoster}}</td>
+			<td>{{line.photoID}}</td>
+			<td>{{line.caption}}</td>
+			<td>{{line.filepath}}</td>
+			<td><img src="/image/{{line.filepath}}" width="300"/></td>
+			<td>{{line.allFollowers}}</td>
+		</tr>
+	{% endfor %}
+	</table>
+
+
+
+	<br>
+	<a href="/home">Home</a>
+	<br/>
+	<br/>
+	<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>

@@ -1,0 +1,7 @@
+Sophia Danielsen and Florence Tong 
+
+Optional Features:
+1. Manage Tags
+2. Search By Poster (already done)
+3. Add friendGroup (already done) --> Just need to check if a group is already created with that specific name [add error]
+4. Add friend (already done) --> Just need to check if that user is already in the group [add error]

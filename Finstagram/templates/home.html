@@ -1,0 +1,84 @@
+<html>
+    <head>
+        <title>Finstagram</title>
+    </head>
+    <body>
+        <h1>Hello, {{ username }}!</h1>
+        <div>
+            <ul>
+                <form action="/show_posts" method="POST">
+              		<input type="text" name = "poster" placeholder="Find a User" required/> </br>
+              		<input type="submit" value = "View Posts">
+              		{% if error %}
+              			<p class="error"><strong>Error:</strong> {{error}}</p>
+              		{% endif %}
+              	</form>
+
+                <li><a href="/images">View Your Images</a></li>
+                <li><a href="/upload">Upload an Image</a></li>
+                <li><a href="/manage">Manage Followers / Tags</a></li>
+                <li><a href="/logout">Logout</a></li>
+
+                <br/>
+                <br/>
+
+                OWNED GROUPS
+                <form action="/createGroup" method="POST">
+                  <input type="text" name = "groupName" placeholder="Name of Group" required/> </br>
+                  <input type="text" name = "description" placeholder= "Description"/> </br>
+                  <input type="submit" value = "Create">
+                </form>
+
+                <table>
+                	<th>Group Name</th>
+                	<th>Members</th>
+                	<th>Add Member </th>
+
+                {% for line in ownedGroupsData %}
+                	<tr>
+                		<td>{{line.groupName}}</td>
+                		<td>
+                			{% for line2 in groupMembersData %}
+                			{% if line2.groupName == line.groupName %}
+                				{{line2.member_username}}
+                			{% endif %}
+                			{% endfor %}
+                		</td>
+                		<td>
+                			<form action="/addMember" method="POST">
+                				<input type="text" name = "newMember" placeholder="Add A Group Member" required/> </br>
+                				<input type="hidden" name = "groupName" value="{{line.groupName}}"/>
+                				<input type="submit" value = Add />
+                			</form>
+                		</td>
+
+                	</tr>
+                {% endfor %}
+                </table>
+
+                <br/>
+                <br/>
+
+                ALL GROUPS
+                <table>
+                	<th>Group Name</th>
+                	<th>Members</th>
+
+                {% for line in groupsJoinedData %}
+                	<tr>
+                		<td>{{line.groupName}}</td>
+                		<td>
+                			{% for line2 in groupsJoinedMembersData %}
+                			{% if line2.groupName == line.groupName %}
+                				{{line2.member_username}}
+                			{% endif %}
+                			{% endfor %}
+                		</td>
+
+                	</tr>
+                {% endfor %}
+                </table>
+            </ul>
+        </div>
+    </body>
+</html>
