@@ -33,6 +33,7 @@ def index():
         return redirect(url_for("home"))
     return render_template("index.html")
 
+#Finstagram Home
 @app.route("/home")
 @login_required
 def home():
@@ -43,49 +44,79 @@ def home():
     cursor.execute(ownedGroupsQuery, (username))
     ownedGroupsData = cursor.fetchall()
 
-    groupMembersQuery = 'SELECT * FROM BelongTo NATURAL JOIN FriendGroup WHERE groupOwner = %s'
+    groupMembersQuery = 'SELECT * FROM BelongTo NATURAL JOIN FriendGroup WHERE groupOwner = %s and groupOwner = owner_username'
     cursor.execute(groupMembersQuery, (username))
     groupMembersData = cursor.fetchall()
 
-    groupsJoinedQuery = 'SELECT DISTINCT groupName, groupOwner FROM FriendGroup NATURAL JOIN BelongTo WHERE member_username = %s'
+    groupsJoinedQuery = 'SELECT DISTINCT groupName, groupOwner FROM FriendGroup NATURAL JOIN BelongTo WHERE member_username = %s and groupOwner = owner_username'
     cursor.execute(groupsJoinedQuery, (username))
     groupsJoinedData = cursor.fetchall()
 
-    groupsJoinedMembersQuery = 'SELECT * FROM BelongTo NATURAL JOIN FriendGroup WHERE groupName IN (SELECT groupName FROM BelongTo WHERE member_username = %s)'
+    groupsJoinedMembersQuery = 'SELECT * FROM BelongTo NATURAL JOIN FriendGroup WHERE (groupName, owner_username) IN (SELECT groupName, owner_username FROM BelongTo WHERE member_username = %s) and groupOwner = owner_username'
     cursor.execute(groupsJoinedMembersQuery, (username))
     groupsJoinedMembersData = cursor.fetchall()
 
-    cursor.close()
-    return render_template("home.html", username=username, ownedGroupsData=ownedGroupsData, groupMembersData=groupMembersData, groupsJoinedData=groupsJoinedData, groupsJoinedMembersData=groupsJoinedMembersData)
+    # postsQuery = 'SELECT * FROM Photo WHERE photoPoster = %s OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s) OR photoPoster = (SELECT username_followed FROM Follow WHERE username_follower = %s) ORDER BY postingdate DESC'
+    postsQuery = 'SELECT * FROM Photo NATURAL JOIN Person WHERE photoPoster = username AND (photoPoster = %s OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s) OR photoPoster = (SELECT username_followed FROM Follow WHERE username_follower = %s)) ORDER BY postingdate DESC'
+    cursor.execute(postsQuery, (username, username, username))
+    posts = cursor.fetchall()
 
+    tagQuery = 'SELECT * FROM Tagged Natural Join Person WHERE tagstatus = 1'
+    cursor.execute(tagQuery)
+    tagData = cursor.fetchall()
+
+    likeQuery = 'SELECT * FROM Likes Natural Join Person'
+    cursor.execute(likeQuery)
+    likeData = cursor.fetchall()
+
+    cursor.close()
+    return render_template("home.html", username=username, ownedGroupsData=ownedGroupsData, groupMembersData=groupMembersData, groupsJoinedData=groupsJoinedData, groupsJoinedMembersData=groupsJoinedMembersData, posts=posts, tagData=tagData, likeData=likeData)
+
+#Upload Image
 @app.route("/upload", methods=["GET"])
 @login_required
 def upload():
     username = session["username"]
     cursor = connection.cursor();
-    ownedGroupsQuery = 'SELECT DISTINCT groupName, groupOwner FROM FriendGroup WHERE groupName IN (SELECT groupName FROM BelongTo WHERE member_username = %s)'
-    cursor.execute(ownedGroupsQuery, (username))
-    ownedGroupsData = cursor.fetchall()
+    groupsJoinedQuery = 'SELECT DISTINCT groupName, groupOwner FROM FriendGroup NATURAL JOIN BelongTo WHERE member_username = %s and groupOwner = owner_username'
+    cursor.execute(groupsJoinedQuery, (username))
+    groupsJoinedData = cursor.fetchall()
     cursor.close()
 
-    return render_template("upload.html", ownedGroupsData=ownedGroupsData)
+    return render_template("upload.html", groupsJoinedData=groupsJoinedData)
 
+#Search for posts by username
 @app.route('/show_posts', methods=["GET", "POST"])
 def show_posts():
     poster = request.form['poster']
     username = session["username"]
+
+    cursor = connection.cursor();
+    tagQuery = 'SELECT * FROM Tagged Natural Join Person WHERE tagstatus = 1'
+    cursor.execute(tagQuery)
+    tagData = cursor.fetchall()
+
+    likeQuery = 'SELECT * FROM Likes Natural Join Person'
+    cursor.execute(likeQuery)
+    likeData = cursor.fetchall()
+
     try:
-        cursor = connection.cursor();
-        # query = 'SELECT * FROM Photo WHERE photoPoster = %s AND allFollowers = 1 AND photoPoster IN (SELECT username_followed AS photoPoster FROM Follow WHERE username_followed = %s AND username_follower = %s AND followstatus = 1) ORDER BY postingdate DESC'
-        query = 'SELECT * FROM Photo WHERE photoPoster = %s AND (allFollowers = 1 AND photoPoster IN (SELECT username_followed AS photoPoster FROM Follow WHERE username_followed = %s AND username_follower = %s AND followstatus = 1) OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s)) OR (photoPoster = %s) ORDER BY postingdate DESC'
-        cursor.execute(query, (poster, poster, username, username, username))
-        data = cursor.fetchall()
+        if(poster == username):
+            query = 'SELECT * FROM Photo NATURAL JOIN Person WHERE photoPoster = username AND photoPoster = %s'
+            cursor.execute(query, (username))
+            data = cursor.fetchall()
+        else:
+            # cursor = connection.cursor();
+            query = 'SELECT * FROM Photo NATURAL JOIN Person WHERE photoPoster = username AND photoPoster = %s AND (allFollowers = 1 AND photoPoster IN (SELECT username_followed AS photoPoster FROM Follow WHERE username_followed = %s AND username_follower = %s AND followstatus = 1) OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s)) ORDER BY postingdate DESC'
+            cursor.execute(query, (poster, poster, username, username))
+            data = cursor.fetchall()
         cursor.close()
-        return render_template('show_posts.html', poster_name=poster, posts=data)
+        return render_template('show_posts.html', poster_name=poster, posts=data, tagData=tagData, likeData=likeData)
     except:
         print("ERROR. USER NOT FOUND!")
         return redirect(url_for('home'))
 
+#Show your own posts
 @app.route("/images", methods=["GET"])
 @login_required
 def images():
@@ -94,11 +125,21 @@ def images():
     with connection.cursor() as cursor:
         try:
             cursor.execute(query, (username))
+
         except:
             error = "YOU DON'T HAVE ANY PHOTOS"
-            return render_template("home.html", username=username, error=error)
-    data = cursor.fetchall()
-    return render_template("images.html", images=data)
+            return redirect(url_for('home'))
+        data = cursor.fetchall()
+
+        tagQuery = 'SELECT * FROM Tagged Natural Join Person WHERE tagstatus = 1'
+        cursor.execute(tagQuery)
+        tagData = cursor.fetchall()
+
+        likeQuery = 'SELECT * FROM Likes Natural Join Person'
+        cursor.execute(likeQuery)
+        likeData = cursor.fetchall()
+
+    return render_template("images.html", posts=data, tagData=tagData, likeData=likeData)
 
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):
@@ -235,12 +276,12 @@ def follow():
             error = "COULDN'T FIND USER!"
             connection.commit()
             cursor.close()
-            return render_template('home.html', username=username, error=error)
+            return redirect(url_for('home'))
     else:
         error = "YOU CAN'T FOLLOW YOURSELF!"
         connection.commit()
         cursor.close()
-        return render_template('home.html', username=username, error=error)
+        return redirect(url_for('home'))
 
     connection.commit()
     cursor.close()
@@ -251,7 +292,6 @@ def follow():
 def followStatus():
     username = session['username']
     followerUsername = request.form['followerName']
-    print(request.form["followButton"])
     if (request.form["followButton"] == "accept"):
         print ("ACCEPTED")
         updateFollowQuery = 'UPDATE Follow SET followstatus = 1 WHERE username_followed = %s AND username_follower = %s'
@@ -265,7 +305,6 @@ def followStatus():
         cursor.execute(updateFollowQuery, (username))
     else:
         print ("DIDN'T WORK")
-    # print("ACCEPTED TAG TEST:", acceptedTag)
 
     data = cursor.fetchall()
 
@@ -289,7 +328,7 @@ def createGroup():
         belongQuery = 'INSERT INTO BelongTo (member_username, owner_username, groupName) VALUES(%s, %s, %s)'
         cursor.execute(belongQuery, (username, username, groupName))
     except:
-        print("Something went wrong!")
+        print("Error, you already own a group of that name!")
     connection.commit()
     cursor.close()
     return redirect(url_for('home'))
@@ -306,11 +345,60 @@ def addMember():
         query = 'INSERT INTO BelongTo (member_username, owner_username, groupName) VALUES(%s, %s, %s)'
         cursor.execute(query, (newMember, username, groupName))
     except:
-        print("Something went wrong!")
+        print("Error, username either does not exist or already in the group!")
 
     connection.commit()
     cursor.close()
     return redirect(url_for('home'))
+
+@app.route('/tag', methods = ["GET", "POST"])
+@login_required
+def tag():
+    username = session['username']
+    tagged_user = request.form['tagged_user']
+    photoID = request.form['photoID']
+    cursor = connection.cursor();
+
+    followQuery = 'SELECT count(username_follower) as followed FROM Follow WHERE username_follower = %s AND username_followed = %s and followstatus = 1'
+    cursor.execute(followQuery, (tagged_user, username))
+    data = cursor.fetchall()
+    print(data[0])
+
+    if(data[0]["followed"] == 1):
+        print("Tagging")
+        tagQuery = 'INSERT INTO Tagged (username, photoID, tagstatus) VALUES (%s, %s, %s)'
+        if tagged_user == username:
+            cursor.execute(tagQuery, (username, photoID, 1))
+        else:
+            try:
+                cursor.execute(tagQuery, (tagged_user, photoID, 0))
+            except pymysql.err.IntegrityError:
+                print("Error, multiple instances of tagged tried")
+    else:
+        print(tagged_user, "is not following you so you can't tag them")
+
+    connection.commit()
+    cursor.close()
+    return redirect(url_for('images'))
+
+@app.route('/tagStatus', methods = ["GET", "POST"])
+@login_required
+def tagStatus():
+    username = session["username"]
+    photoID = request.form["photoID"]
+
+    if(request.form["tagButton"] == "accept"):
+        updateQuery = 'UPDATE Tagged SET tagstatus = 1 WHERE username = %s AND photoID = %s'
+    elif (request.form["tagButton"] == "decline"):
+        updateQuery = 'DELETE FROM Tagged WHERE username = %s AND photoID = %s'
+    else:
+        print("DIDN'T WORK")
+
+    cursor = connection.cursor();
+    cursor.execute(updateQuery, (username, photoID))
+    data = cursor.fetchall()
+
+    return redirect(url_for('manage'))
 
 if __name__ == "__main__":
     if not os.path.isdir("images"):

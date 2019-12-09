@@ -11,8 +11,8 @@
                 <br/>
                 <input type="radio" name = 'groupName' value = allFollowers > All Followers?
               	<br>
-                {% for line in ownedGroupsData %}
-              	<input type="radio" name="groupName" value={{line.groupName}}>{{line.groupName}}</input>
+                {% for line in groupsJoinedData %}
+              	<input type="radio" name="groupName" value={{line.groupName}}>{{line.groupName}} ({{line.groupOwner}})</input>
               	<input type="hidden" name = "groupOwner" value = {{line.groupOwner}}></input>
               		<br>
               	{% endfor %}

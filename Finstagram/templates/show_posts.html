@@ -9,6 +9,17 @@
 	}
 </style>
 
+<form action="/show_posts" method="POST">
+	<input type="text" name = "poster" placeholder="Find a User" required/> </br>
+	<input type="submit" value = "View Posts">
+	{% if error %}
+		<p class="error"><strong>Error:</strong> {{error}}</p>
+	{% endif %}
+</form>
+
+<br>
+<br>
+
 Here are posts by {{poster_name}}:
 <br>
 <br>
@@ -21,29 +32,37 @@ Here are posts by {{poster_name}}:
 
 
 
-	<table>
-		<th>Time</th>
-		<th>User</th>
-		<th>photoPoster</th>
-		<th>PhotoID</th>
-		<th>Caption</th>
-		<th>Photo Path</th>
-		<th>Photo</th>
-		<th>allFollowers</th>
+<table>
+	<th>Time</th>
+	<th>Username (Fullname)</th>
+	<th>Photo</th>
+	<th>Caption</th>
+	<th>Tagged People </th>
+	<th>Likes </th>
 
-	{% for line in posts %}
-		<tr>
-			<td>{{line.postingdate}}</td>
-			<td>{{line.firstName, line.lastName}}</td>
-			<td>{{line.photoPoster}}</td>
-			<td>{{line.photoID}}</td>
-			<td>{{line.caption}}</td>
-			<td>{{line.filepath}}</td>
-			<td><img src="/image/{{line.filepath}}" width="300"/></td>
-			<td>{{line.allFollowers}}</td>
-		</tr>
-	{% endfor %}
-	</table>
+{% for line in posts %}
+	<tr>
+		<td style="text-align:center">{{line.postingdate}}</td>
+		<td style="text-align:center">{{line.photoPoster}} ({{line.firstName}} {{line.lastName}})</td>
+		<td style="text-align:center"><img src="/image/{{line.filepath}}" width="300"/></td>
+		<td style="text-align:center">{{line.caption}}</td>
+		<td style="text-align:center">
+			{% for line2 in tagData %}
+			{% if line2.photoID == line.photoID %}
+				{{line2.firstName}} {{line2.lastName}} ({{line2.username}})
+				<br></br>
+			{% endif %}
+			{% endfor %}
+		<td style="text-align:center">
+			{% for line2 in likeData %}
+			{% if line2.photoID == line.photoID %}
+				{{line2.firstName}} {{line2.lastName}} ({{line2.username}}) --> {{line2.rating}}
+				<br></br>
+			{% endif %}
+			{% endfor %}
+	</tr>
+{% endfor %}
+</table>
 
 
 

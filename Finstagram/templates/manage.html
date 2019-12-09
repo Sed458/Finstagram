@@ -7,10 +7,11 @@
 Manage Tags
 <br>
 
-<form action="/tagAcceptOrDecline" method="POST">
+<form action="/tagStatus" method="POST">
 
 
 {% for line in tagData %}
+<img src="/image/{{line.filepath}}" width="300"/>
 <input type="radio" name="photoID" value={{line.photoID}}>{{line.photoID}}</input>
 	<br>
 {% endfor %}
