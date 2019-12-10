@@ -57,7 +57,7 @@ def home():
     groupsJoinedMembersData = cursor.fetchall()
 
     # postsQuery = 'SELECT * FROM Photo WHERE photoPoster = %s OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s) OR photoPoster = (SELECT username_followed FROM Follow WHERE username_follower = %s) ORDER BY postingdate DESC'
-    postsQuery = 'SELECT * FROM Photo NATURAL JOIN Person WHERE photoPoster = username AND (photoPoster = %s OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s) OR photoPoster = (SELECT username_followed FROM Follow WHERE username_follower = %s)) ORDER BY postingdate DESC'
+    postsQuery = 'SELECT * FROM Photo NATURAL JOIN Person WHERE photoPoster = username AND (photoPoster = %s OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s) OR photoPoster = (SELECT username_followed FROM Follow WHERE username_follower = %s and followstatus = 1)) ORDER BY postingdate DESC'
     cursor.execute(postsQuery, (username, username, username))
     posts = cursor.fetchall()
 
