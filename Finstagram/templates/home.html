@@ -1,130 +1,146 @@
 <html>
-    <head>
-        <title>Finstagram</title>
-    </head>
-    <body>
-      <style type="text/css">
-      	table, th, td{
-      		border: 1px solid black;
-      	}
-      </style>
 
-        <h1>Hello, {{ username }}!</h1>
-        <div>
-            <ul>
-                <form action="/show_posts" method="POST">
-              		<input type="text" name = "poster" placeholder="Find a User" required/> </br>
-              		<input type="submit" value = "View Posts">
-              		{% if error %}
-              			<p class="error"><strong>Error:</strong> {{error}}</p>
-              		{% endif %}
-              	</form>
+<head>
+  <title>Finstagram</title>
+</head>
 
-                <li><a href="/images">View Your Images</a></li>
-                <li><a href="/upload">Upload an Image</a></li>
-                <li><a href="/manage">Manage Followers / Tags</a></li>
-                <li><a href="/logout">Logout</a></li>
+<body>
+  <style type="text/css">
+    table,
+    th,
+    td {
+      border: 1px solid black;
+    }
+  </style>
 
-                <br/>
-                <br/>
+  <h1>Hello, {{ username }}!</h1>
+  <div>
+    <ul>
+      <form action="/show_posts" method="POST">
+        <input type="text" name="poster" placeholder="Find a User" required /> </br>
+        <input type="submit" value="View Posts">
+        {% if error %}
+        <p class="error"><strong>Error:</strong> {{error}}</p>
+        {% endif %}
+      </form>
 
-                OWNED GROUPS
-                <form action="/createGroup" method="POST">
-                  <input type="text" name = "groupName" placeholder="Name of Group" required/> </br>
-                  <input type="text" name = "description" placeholder= "Description"/> </br>
-                  <input type="submit" value = "Create">
-                </form>
+      <li><a href="/images">View Your Images</a></li>
+      <li><a href="/upload">Upload an Image</a></li>
+      <li><a href="/manage">Manage Followers / Tags</a></li>
+      <li><a href="/logout">Logout</a></li>
 
-                <table>
-                	<th>Group Name</th>
-                	<th>Members</th>
-                	<th>Add Member </th>
+      <br />
+      <br />
 
-                {% for line in ownedGroupsData %}
-                	<tr>
-                		<td>{{line.groupName}}</td>
-                		<td>
-                			{% for line2 in groupMembersData %}
-                			{% if line2.groupName == line.groupName %}
-                				{{line2.member_username}}
-                			{% endif %}
-                			{% endfor %}
-                		</td>
-                		<td>
-                			<form action="/addMember" method="POST">
-                				<input type="text" name = "newMember" placeholder="Add A Group Member" required/> </br>
-                				<input type="hidden" name = "groupName" value="{{line.groupName}}"/>
-                				<input type="submit" value = Add />
-                			</form>
-                		</td>
+      OWNED GROUPS
+      <form action="/createGroup" method="POST">
+        <input type="text" name="groupName" placeholder="Name of Group" required /> </br>
+        <input type="text" name="description" placeholder="Description" /> </br>
+        <input type="submit" value="Create">
+      </form>
 
-                	</tr>
-                {% endfor %}
-                </table>
+      <table>
+        <th>Group Name</th>
+        <th>Members</th>
+        <th>Add Member </th>
 
-                <br/>
-                <br/>
+        {% for line in ownedGroupsData %}
+        <tr>
+          <td>{{line.groupName}}</td>
+          <td>
+            {% for line2 in groupMembersData %}
+            {% if line2.groupName == line.groupName %}
+            {{line2.member_username}}
+            {% endif %}
+            {% endfor %}
+          </td>
+          <td>
+            <form action="/addMember" method="POST">
+              <input type="text" name="newMember" placeholder="Add A Group Member" required /> </br>
+              <input type="hidden" name="groupName" value="{{line.groupName}}" />
+              <input type="submit" value=Add />
+            </form>
+          </td>
 
-                ALL GROUPS
-                <table>
-                	<th>Group Name</th>
-                	<th>Members</th>
+        </tr>
+        {% endfor %}
+      </table>
 
-                {% for line in groupsJoinedData %}
-                	<tr>
-                		<td>{{line.groupName}}</td>
-                		<td>
-                			{% for line2 in groupsJoinedMembersData %}
-                			{% if line2.groupName == line.groupName %}
-                        {% if line.groupOwner == line2.owner_username %}
-                  				{{line2.member_username}}
-                			  {% endif %}
-                      {% endif %}
-                			{% endfor %}
-                		</td>
+      <br />
+      <br />
 
-                	</tr>
-                {% endfor %}
-                </table>
+      ALL GROUPS
+      <table>
+        <th>Group Name</th>
+        <th>Members</th>
 
-                <br/>
-                <br/>
+        {% for line in groupsJoinedData %}
+        <tr>
+          <td>{{line.groupName}}</td>
+          <td>
+            {% for line2 in groupsJoinedMembersData %}
+            {% if line2.groupName == line.groupName %}
+            {% if line.groupOwner == line2.owner_username %}
+            {{line2.member_username}}
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+          </td>
 
-                <center>
-                POSTS
-                <table>
-                  <th>Time</th>
-              		<th>Username (Fullname)</th>
-              		<th>Photo</th>
-                  <th>Caption</th>
-              		<th>Tagged People </th>
-              		<th>Likes </th>
+        </tr>
+        {% endfor %}
+      </table>
 
-              	{% for line in posts %}
-              		<tr>
-              			<td style="text-align:center">{{line.postingdate}}</td>
-              			<td style="text-align:center">{{line.photoPoster}} ({{line.firstName}} {{line.lastName}})</td>
-              			<td style="text-align:center"><img src="/image/{{line.filepath}}" width="300"/></td>
-                    <td style="text-align:center">{{line.caption}}</td>
-              			<td style="text-align:center">
-              				{% for line2 in tagData %}
-              				{% if line2.photoID == line.photoID %}
-              					{{line2.firstName}} {{line2.lastName}} ({{line2.username}})
-              					<br></br>
-              				{% endif %}
-              				{% endfor %}
-                    <td style="text-align:center">
-              				{% for line2 in likeData %}
-              				{% if line2.photoID == line.photoID %}
-              					{{line2.firstName}} {{line2.lastName}} ({{line2.username}}) --> {{line2.rating}}
-              					<br></br>
-              				{% endif %}
-              				{% endfor %}
-              		</tr>
-              	{% endfor %}
-              	</table>
-              </center>
-            </ul>
-        </div>
-    </body>
+      <br />
+      <br />
+
+      <center>
+        POSTS
+        <table>
+          <th>Time</th>
+          <th>Username (Fullname)</th>
+          <th>Photo</th>
+          <th>Caption</th>
+          <th>Tagged People </th>
+          <th>Add Tag </th>
+          <th>Likes </th>
+
+          {% for line in posts %}
+          <tr>
+            <td style="text-align:center">{{line.postingdate}}</td>
+            <td style="text-align:center">{{line.photoPoster}} ({{line.firstName}} {{line.lastName}})</td>
+            <td style="text-align:center"><img src="/image/{{line.filepath}}" width="300" /></td>
+            <td style="text-align:center">{{line.caption}}</td>
+            <td style="text-align:center">
+              {% for line2 in tagData %}
+              {% if line2.photoID == line.photoID %}
+              {{line2.firstName}} {{line2.lastName}} ({{line2.username}})
+              <br></br>
+              {% endif %}
+              {% endfor %}
+            <td style="text-align:center">
+              <form action="/tag" method="POST">
+                <input type="text" name="tagged_user" placeholder="Tag Someone" required /> </br>
+                <input type="hidden" name="photoID" value="{{line.photoID}}" />
+                <input type="submit" value=Tag />
+                {% if error %}
+                <p class="error"><strong>Error:</strong> {{error}}</p>
+                {% endif %}
+              </form>
+            </td>
+            <td style="text-align:center">
+              {% for line2 in likeData %}
+              {% if line2.photoID == line.photoID %}
+              {{line2.firstName}} {{line2.lastName}} ({{line2.username}}) --> {{line2.rating}}
+              <br></br>
+              {% endif %}
+              {% endfor %}
+          </tr>
+          {% endfor %}
+        </table>
+      </center>
+    </ul>
+  </div>
+</body>
+
 </html>

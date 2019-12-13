@@ -40,25 +40,25 @@ def home():
     username = session['username']
     cursor = connection.cursor();
 
-    ownedGroupsQuery = 'SELECT DISTINCT groupName, groupOwner FROM FriendGroup WHERE groupOwner = %s'
+    ownedGroupsQuery = 'SELECT DISTINCT groupName, groupOwner FROM Friendgroup WHERE groupOwner = %s'
     cursor.execute(ownedGroupsQuery, (username))
     ownedGroupsData = cursor.fetchall()
 
-    groupMembersQuery = 'SELECT * FROM BelongTo NATURAL JOIN FriendGroup WHERE groupOwner = %s and groupOwner = owner_username'
+    groupMembersQuery = 'SELECT * FROM BelongTo NATURAL JOIN Friendgroup WHERE groupOwner = %s and groupOwner = owner_username'
     cursor.execute(groupMembersQuery, (username))
     groupMembersData = cursor.fetchall()
 
-    groupsJoinedQuery = 'SELECT DISTINCT groupName, groupOwner FROM FriendGroup NATURAL JOIN BelongTo WHERE member_username = %s and groupOwner = owner_username'
+    groupsJoinedQuery = 'SELECT DISTINCT groupName, groupOwner FROM Friendgroup NATURAL JOIN BelongTo WHERE member_username = %s and groupOwner = owner_username'
     cursor.execute(groupsJoinedQuery, (username))
     groupsJoinedData = cursor.fetchall()
 
-    groupsJoinedMembersQuery = 'SELECT * FROM BelongTo NATURAL JOIN FriendGroup WHERE (groupName, owner_username) IN (SELECT groupName, owner_username FROM BelongTo WHERE member_username = %s) and groupOwner = owner_username'
+    groupsJoinedMembersQuery = 'SELECT * FROM BelongTo NATURAL JOIN Friendgroup WHERE (groupName, owner_username) IN (SELECT groupName, owner_username FROM BelongTo WHERE member_username = %s) and groupOwner = owner_username'
     cursor.execute(groupsJoinedMembersQuery, (username))
     groupsJoinedMembersData = cursor.fetchall()
 
     # postsQuery = 'SELECT * FROM Photo WHERE photoPoster = %s OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s) OR photoPoster = (SELECT username_followed FROM Follow WHERE username_follower = %s) ORDER BY postingdate DESC'
-    postsQuery = 'SELECT * FROM Photo NATURAL JOIN Person WHERE photoPoster = username AND (photoPoster = %s OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s) OR photoPoster = (SELECT username_followed FROM Follow WHERE username_follower = %s and followstatus = 1)) ORDER BY postingdate DESC'
-    cursor.execute(postsQuery, (username, username, username))
+    postsQuery = 'SELECT * FROM Photo NATURAL JOIN Person WHERE allFollowers = 1 AND photoPoster = username AND (photoPoster = %s OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s AND allFollowers = 1 AND photoPoster IN (SELECT username_followed FROM Follow WHERE username_follower = %s and followstatus = 1)) OR photoPoster IN (SELECT username_followed FROM Follow WHERE username_follower = %s and followstatus = 1)) ORDER BY postingdate DESC'
+    cursor.execute(postsQuery, (username, username, username, username))
     posts = cursor.fetchall()
 
     tagQuery = 'SELECT * FROM Tagged Natural Join Person WHERE tagstatus = 1'
@@ -78,7 +78,7 @@ def home():
 def upload():
     username = session["username"]
     cursor = connection.cursor();
-    groupsJoinedQuery = 'SELECT DISTINCT groupName, groupOwner FROM FriendGroup NATURAL JOIN BelongTo WHERE member_username = %s and groupOwner = owner_username'
+    groupsJoinedQuery = 'SELECT DISTINCT groupName, groupOwner FROM Friendgroup NATURAL JOIN BelongTo WHERE member_username = %s and groupOwner = owner_username'
     cursor.execute(groupsJoinedQuery, (username))
     groupsJoinedData = cursor.fetchall()
     cursor.close()
@@ -107,8 +107,8 @@ def show_posts():
             data = cursor.fetchall()
         else:
             # cursor = connection.cursor();
-            query = 'SELECT * FROM Photo NATURAL JOIN Person WHERE photoPoster = username AND photoPoster = %s AND (allFollowers = 1 AND photoPoster IN (SELECT username_followed AS photoPoster FROM Follow WHERE username_followed = %s AND username_follower = %s AND followstatus = 1) OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s)) ORDER BY postingdate DESC'
-            cursor.execute(query, (poster, poster, username, username))
+            query = 'SELECT * FROM Photo NATURAL JOIN Person WHERE photoPoster = username AND photoPoster = %s AND (allFollowers = 1 AND photoPoster IN (SELECT username_followed AS photoPoster FROM Follow WHERE username_followed = %s AND username_follower = %s AND followstatus = 1) OR photoID IN (SELECT photoID FROM Photo NATURAL JOIN SharedWith NATURAL JOIN BelongTo WHERE member_username = %s) AND photoPoster IN (SELECT username_followed FROM Follow WHERE username_follower = %s and followstatus = 1)) ORDER BY postingdate DESC'
+            cursor.execute(query, (poster, poster, username, username, username))
             data = cursor.fetchall()
         cursor.close()
         return render_template('show_posts.html', poster_name=poster, posts=data, tagData=tagData, likeData=likeData)
@@ -214,7 +214,7 @@ def upload_image():
     groupOwner = request.form["groupOwner"]
 
     cursor = connection.cursor();
-    ownedGroupsQuery = 'SELECT DISTINCT groupName, groupOwner FROM FriendGroup WHERE groupName IN (SELECT groupName FROM BelongTo WHERE member_username = %s)'
+    ownedGroupsQuery = 'SELECT DISTINCT groupName, groupOwner FROM Friendgroup WHERE groupName IN (SELECT groupName FROM BelongTo WHERE member_username = %s)'
     cursor.execute(ownedGroupsQuery, (username))
     ownedGroupsData = cursor.fetchall()
     cursor.close()
@@ -300,9 +300,9 @@ def followStatus():
 
     elif (request.form["followButton"] == "decline"):
         print ("DECLINED")
-        updateFollowQuery = 'DELETE FROM Follow WHERE username_followed = %s'
+        updateFollowQuery = 'DELETE FROM Follow WHERE username_followed = %s AND username_follower = %s'
         cursor = connection.cursor();
-        cursor.execute(updateFollowQuery, (username))
+        cursor.execute(updateFollowQuery, (username, followerUsername))
     else:
         print ("DIDN'T WORK")
 
@@ -322,7 +322,7 @@ def createGroup():
     groupName = request.form['groupName']
     cursor = connection.cursor();
     try:
-        query = 'INSERT INTO FriendGroup (groupOwner, groupName) VALUES(%s, %s)'
+        query = 'INSERT INTO Friendgroup (groupOwner, groupName) VALUES(%s, %s)'
         cursor.execute(query, (username, groupName))
 
         belongQuery = 'INSERT INTO BelongTo (member_username, owner_username, groupName) VALUES(%s, %s, %s)'
@@ -359,7 +359,7 @@ def tag():
     photoID = request.form['photoID']
     cursor = connection.cursor();
 
-    followQuery = 'SELECT count(username_follower) as followed FROM Follow WHERE username_follower = %s AND username_followed = %s and followstatus = 1'
+    followQuery = 'SELECT count(username_follower) as followed FROM Follow WHERE username_follower = %s AND username_followed = %s AND followstatus = 1'
     cursor.execute(followQuery, (tagged_user, username))
     data = cursor.fetchall()
     print(data[0])
@@ -379,7 +379,7 @@ def tag():
 
     connection.commit()
     cursor.close()
-    return redirect(url_for('images'))
+    return redirect(url_for('home'))
 
 @app.route('/tagStatus', methods = ["GET", "POST"])
 @login_required
